@@ -1,38 +1,37 @@
-# Time MCP Server
+# Shell MCP Server
 
-A Model Context Protocol server that provides time and timezone conversion capabilities. This server enables LLMs to get current time information and perform timezone conversions using IANA timezone names, with automatic system timezone detection.
+A Model Context Protocol server that provides shell command execution capabilities. This server enables LLMs to execute shell commands and receive their output in a controlled manner.
 
-### Available Tools
+## Available Tools
 
-- `get_current_time` - Get current time in a specific timezone or system timezone.
+- `execute_command` - Execute a shell command and return its output
   - Required arguments:
-    - `timezone` (string): IANA timezone name (e.g., 'America/New_York', 'Europe/London')
-
-- `convert_time` - Convert time between timezones.
-  - Required arguments:
-    - `source_timezone` (string): Source IANA timezone name
-    - `time` (string): Time in 24-hour format (HH:MM)
-    - `target_timezone` (string): Target IANA timezone name
+    - `command` (string): Shell command to execute
+  - Returns:
+    - Command result containing:
+      - `command`: The executed command
+      - `output`: Combined stdout and stderr output
+      - `return_code`: Command execution return code
 
 ## Installation
 
 ### Using uv (recommended)
 
 When using [`uv`](https://docs.astral.sh/uv/) no specific installation is needed. We will
-use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run *mcp-server-time*.
+use [`uvx`](https://docs.astral.sh/uv/guides/tools/) to directly run *mcp-server-shell*.
 
 ### Using PIP
 
-Alternatively you can install `mcp-server-time` via pip:
+Alternatively you can install `mcp-server-shell` via pip:
 
 ```bash
-pip install mcp-server-time
+pip install mcp-server-shell
 ```
 
 After installation, you can run it as a script using:
 
 ```bash
-python -m mcp_server_time
+python -m mcp_server_shell
 ```
 
 ## Configuration
@@ -46,9 +45,9 @@ Add to your Claude settings:
 
 ```json
 "mcpServers": {
-  "time": {
+  "shell": {
     "command": "uvx",
-    "args": ["mcp-server-time"]
+    "args": ["mcp-server-shell"]
   }
 }
 ```
@@ -59,9 +58,9 @@ Add to your Claude settings:
 
 ```json
 "mcpServers": {
-  "time": {
+  "shell": {
     "command": "python",
-    "args": ["-m", "mcp_server_time"]
+    "args": ["-m", "mcp_server_shell"]
   }
 }
 ```
@@ -75,12 +74,12 @@ Add to your Zed settings.json:
 <summary>Using uvx</summary>
 
 ```json
-"context_servers": [
-  "mcp-server-time": {
+"context_servers": {
+  "mcp-server-shell": {
     "command": "uvx",
-    "args": ["mcp-server-time"]
+    "args": ["mcp-server-shell"]
   }
-],
+},
 ```
 </details>
 
@@ -89,71 +88,31 @@ Add to your Zed settings.json:
 
 ```json
 "context_servers": {
-  "mcp-server-time": {
+  "mcp-server-shell": {
     "command": "python",
-    "args": ["-m", "mcp_server_time"]
+    "args": ["-m", "mcp_server_shell"]
   }
 },
 ```
 </details>
 
-### Customization - System Timezone
-
-By default, the server automatically detects your system's timezone. You can override this by adding the argument `--local-timezone` to the `args` list in the configuration.
-
-Example:
-```json
-{
-  "command": "python",
-  "args": ["-m", "mcp_server_time", "--local-timezone=America/New_York"]
-}
-```
-
 ## Example Interactions
 
-1. Get current time:
+Execute a shell command:
 ```json
 {
-  "name": "get_current_time",
+  "name": "execute_command",
   "arguments": {
-    "timezone": "Europe/Warsaw"
+    "command": "ls -la"
   }
 }
 ```
 Response:
 ```json
 {
-  "timezone": "Europe/Warsaw",
-  "datetime": "2024-01-01T13:00:00+01:00",
-  "is_dst": false
-}
-```
-
-2. Convert time between timezones:
-```json
-{
-  "name": "convert_time",
-  "arguments": {
-    "source_timezone": "America/New_York",
-    "time": "16:30",
-    "target_timezone": "Asia/Tokyo"
-  }
-}
-```
-Response:
-```json
-{
-  "source": {
-    "timezone": "America/New_York",
-    "datetime": "2024-01-01T12:30:00-05:00",
-    "is_dst": false
-  },
-  "target": {
-    "timezone": "Asia/Tokyo",
-    "datetime": "2024-01-01T12:30:00+09:00",
-    "is_dst": false
-  },
-  "time_difference": "+13.0h",
+  "command": "ls -la",
+  "output": "total 24\ndrwxr-xr-x  5 user  group   160 Jan  1 12:00 .\ndrwxr-xr-x  3 user  group    96 Jan  1 12:00 ..",
+  "return_code": 0
 }
 ```
 
@@ -162,32 +121,36 @@ Response:
 You can use the MCP inspector to debug the server. For uvx installations:
 
 ```bash
-npx @modelcontextprotocol/inspector uvx mcp-server-time
+npx @modelcontextprotocol/inspector uvx mcp-server-shell
 ```
 
 Or if you've installed the package in a specific directory or are developing on it:
 
 ```bash
-cd path/to/servers/src/time
-npx @modelcontextprotocol/inspector uv run mcp-server-time
+cd path/to/servers/src/shell
+npx @modelcontextprotocol/inspector uv run mcp-server-shell
 ```
 
 ## Examples of Questions for Claude
 
-1. "What time is it now?" (will use system timezone)
-2. "What time is it in Tokyo?"
-3. "When it's 4 PM in New York, what time is it in London?"
-4. "Convert 9:30 AM Tokyo time to New York time"
+1. "What files are in the current directory?"
+2. "Show me the contents of the README.md file"
+3. "What's the current system date?"
+4. "Check if Python is installed and show its version"
+
+## Security Considerations
+
+⚠️ **Warning**: This server executes shell commands directly on your system. Use with caution and implement appropriate security measures to prevent unauthorized or dangerous command execution.
 
 ## Contributing
 
-We encourage contributions to help expand and improve mcp-server-time. Whether you want to add new time-related tools, enhance existing functionality, or improve documentation, your input is valuable.
+We encourage contributions to help expand and improve mcp-server-shell. Whether you want to add new features, enhance security, or improve documentation, your input is valuable.
 
 For examples of other MCP servers and implementation patterns, see:
 https://github.com/modelcontextprotocol/servers
 
-Pull requests are welcome! Feel free to contribute new ideas, bug fixes, or enhancements to make mcp-server-time even more powerful and useful.
+Pull requests are welcome! Feel free to contribute new ideas, bug fixes, or enhancements to make mcp-server-shell even more powerful and useful.
 
 ## License
 
-mcp-server-time is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
+mcp-server-shell is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
